@@ -33,7 +33,7 @@ STATUS_COLORS = {
 DEFAULT_HOST = "https://hooks.slack.com"  # deprecated
 
 
-class SlackStatusPush(http.HttpStatusPushBase):
+class SlackStatusPush(http.HttpStatusPush):
     name = "SlackStatusPush"
     neededDetails = dict(wantProperties=True)
 
