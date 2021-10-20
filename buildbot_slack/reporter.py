@@ -83,8 +83,6 @@ class SlackStatusPush(http.HttpStatusPush):
     ):
 
         yield super().reconfigService(serverUrl=endpoint, **kwargs)
-
-        self.baseUrl = host_url and host_url.rstrip("/")  # deprecated
         if host_url:
             logger.warning(
                 "[SlackStatusPush] argument host_url is deprecated and will be removed in the next release: specify the full url as endpoint"
@@ -95,7 +93,7 @@ class SlackStatusPush(http.HttpStatusPush):
         self.attachments = attachments
         self._http = yield httpclientservice.HTTPClientService.getService(
             self.master,
-            self.baseUrl or self.endpoint,
+            self.endpoint,
             debug=self.debug,
             verify=self.verify,
         )
@@ -216,11 +214,7 @@ class SlackStatusPush(http.HttpStatusPush):
 
             logger.info("posting to {url}", url=self.endpoint)
             try:
-                if self.baseUrl:
-                    # deprecated
-                    response = yield self._http.post(self.endpoint, json=postData)
-                else:
-                    response = yield self._http.post("", json=postData)
+                response = yield self._http.post(self.endpoint, json=postData)
                 if response.code != 200:
                     content = yield response.content()
                     logger.error(
