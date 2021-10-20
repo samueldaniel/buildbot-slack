@@ -82,7 +82,7 @@ class SlackStatusPush(http.HttpStatusPush):
         **kwargs
     ):
 
-        yield super().reconfigService(**kwargs)
+        yield super().reconfigService(serverUrl=endpoint, **kwargs)
 
         self.baseUrl = host_url and host_url.rstrip("/")  # deprecated
         if host_url:
