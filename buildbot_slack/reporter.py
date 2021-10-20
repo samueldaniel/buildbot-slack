@@ -117,11 +117,6 @@ class SlackStatusPush(http.HttpStatusPush):
                     msg += f"{state_string} - {reason}"
                 msg += "\n\n"
 
-                results = build["results"]
-                if results:
-                    msg += results
-                    msg += "\n\n"
-
                 pr_url = build["properties"].get("pullrequesturl")
                 if pr_url is not None:
                     msg += pr_url[0]
@@ -133,7 +128,7 @@ class SlackStatusPush(http.HttpStatusPush):
 
                 users = build.get("users")
                 if users is not None:
-                    msg += users
+                    msg += str(users)
                     msg += "\n\n"
 
                 msg += "\n\n"
