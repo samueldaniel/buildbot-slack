@@ -107,28 +107,37 @@ class SlackStatusPush(http.HttpStatusPush):
             for build in builds:
                 pprint.pprint(build)
                 msg = ""
+
                 reason = build["buildset"]["reason"]
                 state_string = build["state_string"]
-                results = build["results"]
-                url = build["url"]
                 branch = build["properties"].get("branch")
-                pr_url = build["properties"].get("pullrequesturl", "")
-                users = build.get("users", "")
                 if branch is not None:
                     msg += f"{state_string} - {branch[0]} - {reason}"
                 else:
                     msg += f"{state_string} - {reason}"
                 msg += "\n\n"
+
+                results = build["results"]
                 if results:
                     msg += results
                     msg += "\n\n"
-                if pr_url:
-                    msg += pr_url
+
+                pr_url = build["properties"].get("pullrequesturl")
+                if pr_url is not None:
+                    msg += pr_url[0]
                     msg += "\n\n"
+
+                url = build["url"]
                 msg += url
                 msg += "\n\n"
-                msg += users
+
+                users = build.get("users")
+                if users is not None:
+                    msg += users
+                    msg += "\n\n"
+
                 msg += "\n\n"
+
                 try:
                     postData = {"text": msg}
                     response = yield self._http.post("", json=postData)
