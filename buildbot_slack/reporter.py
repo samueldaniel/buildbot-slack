@@ -1,6 +1,6 @@
-import pprint
-
 from __future__ import absolute_import, print_function
+
+import pprint
 
 from twisted.internet import defer
 
