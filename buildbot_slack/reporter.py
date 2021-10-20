@@ -112,9 +112,12 @@ class SlackStatusPush(http.HttpStatusPush):
                 url = build["url"]
                 branch = build["properties"].get("branch", "")
                 pr_url = build["properties"].get("pullrequesturl", "")
-                users = build["users"]
+                users = build.get("users", "")
                 msg += f"{state_string} - {branch} - {reason}"
                 msg += "\n"
+                if results:
+                    msg += results
+                    msg += "\n"
                 if pr_url:
                     msg += pr_url
                     msg += "\n"
