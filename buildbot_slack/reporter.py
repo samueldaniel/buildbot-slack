@@ -214,7 +214,7 @@ class SlackStatusPush(http.HttpStatusPush):
 
             logger.info("posting to {url}", url=self.endpoint)
             try:
-                response = yield self._http.post(self.endpoint, json=postData)
+                response = yield self._http.post("", json=postData)
                 if response.code != 200:
                     content = yield response.content()
                     logger.error(
