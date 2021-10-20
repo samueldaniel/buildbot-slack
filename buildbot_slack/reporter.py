@@ -1,4 +1,4 @@
-# Based on the gitlab reporter from buildbot
+import pprint
 
 from __future__ import absolute_import, print_function
 
@@ -105,6 +105,7 @@ class SlackStatusPush(http.HttpStatusPush):
         for report in reports:
             builds = report["builds"]
             for build in builds:
+                pprint.pprint(build)
                 msg = ""
                 reason = build["buildset"]["reason"]
                 state_string = build["state_string"]
@@ -114,17 +115,17 @@ class SlackStatusPush(http.HttpStatusPush):
                 pr_url = build["properties"].get("pullrequesturl", "")
                 users = build.get("users", "")
                 msg += f"{state_string} - {branch} - {reason}"
-                msg += "\n"
+                msg += "\n\n"
                 if results:
                     msg += results
-                    msg += "\n"
+                    msg += "\n\n"
                 if pr_url:
                     msg += pr_url
-                    msg += "\n"
+                    msg += "\n\n"
                 msg += url
-                msg += "\n"
+                msg += "\n\n"
                 msg += users
-                msg += "\n"
+                msg += "\n\n"
                 try:
                     postData = {"text": msg}
                     response = yield self._http.post("", json=postData)
