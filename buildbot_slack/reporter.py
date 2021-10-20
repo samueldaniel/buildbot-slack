@@ -101,136 +101,36 @@ class SlackStatusPush(http.HttpStatusPush):
         self.project_ids = {}
 
     @defer.inlineCallbacks
-    def getAttachments(self, build, key):
-        sourcestamps = build["buildset"]["sourcestamps"]
-        attachments = []
-
-        for sourcestamp in sourcestamps:
-            sha = sourcestamp["revision"]
-
-            title = "Build #{buildid}".format(buildid=build["buildid"])
-            project = sourcestamp["project"]
-            if project:
-                title += " for {project} {sha}".format(project=project, sha=sha)
-            sub_build = bool(build["buildset"]["parent_buildid"])
-            if sub_build:
-                title += " {relationship}: #{parent_build_id}".format(
-                    relationship=build["buildset"]["parent_relationship"],
-                    parent_build_id=build["buildset"]["parent_buildid"],
-                )
-
-            fields = []
-            if not sub_build:
-                branch_name = sourcestamp["branch"]
-                if branch_name:
-                    fields.append(
-                        {"title": "Branch", "value": branch_name, "short": True}
-                    )
-                repositories = sourcestamp["repository"]
-                if repositories:
-                    fields.append(
-                        {"title": "Repository", "value": repositories, "short": True}
-                    )
-                responsible_users = yield utils.getResponsibleUsersForBuild(
-                    self.master, build["buildid"]
-                )
-                if responsible_users:
-                    fields.append(
-                        {
-                            "title": "Committers",
-                            "value": ", ".join(responsible_users),
-                            "short": True,
-                        }
-                    )
-            attachments.append(
-                {
-                    "title": title,
-                    "title_link": build["url"],
-                    "fallback": "{}: <{}>".format(title, build["url"]),
-                    "text": "Status: *{status}*".format(
-                        status=statusToString(build["results"])
-                    ),
-                    "color": STATUS_COLORS.get(statusToString(build["results"]), ""),
-                    "mrkdwn_in": ["text", "title", "fallback"],
-                    "fields": fields,
-                }
-            )
-        return attachments
-
-    @defer.inlineCallbacks
-    def getBuildDetailsAndSendMessage(self, build, key):
-        yield utils.getDetailsForBuild(self.master, build, **self.neededDetails)
-        text = yield self.getMessage(build, key)
-        postData = {}
-        if self.attachments:
-            attachments = yield self.getAttachments(build, key)
-            if attachments:
-                postData["attachments"] = attachments
-        else:
-            text += " here: " + build["url"]
-        postData["text"] = text
-
-        if self.channel:
-            postData["channel"] = self.channel
-
-        postData["icon_emoji"] = STATUS_EMOJIS.get(
-            statusToString(build["results"]), ":facepalm:"
-        )
-        extra_params = yield self.getExtraParams(build, key)
-        postData.update(extra_params)
-        return postData
-
-    def getMessage(self, build, event_name):
-        event_messages = {
-            "new": "Buildbot started build %s" % build["builder"]["name"],
-            "finished": "Buildbot finished build %s with result: %s"
-            % (build["builder"]["name"], statusToString(build["results"])),
-        }
-        return event_messages.get(event_name, "")
-
-    # returns a Deferred that returns None
-    def buildStarted(self, key, build):
-        return self.send(build, key[2])
-
-    # returns a Deferred that returns None
-    def buildFinished(self, key, build):
-        return self.send(build, key[2])
-
-    def getExtraParams(self, build, event_name):
-        return {}
-
-    @defer.inlineCallbacks
     def sendMessage(self, reports):
-        import pprint
-        pprint.pprint(reports)
-        postData = yield self.getBuildDetailsAndSendMessage(build, key)
-        logger.info("[SlackStatusPush] postData: %s", postData)
-        if not postData:
-            logger.info("[SlackStatusPush] no postData")
-            return
-
-        sourcestamps = build["buildset"]["sourcestamps"]
-        if not sourcestamps:
-            logger.warning("[SlackStatusPush] no sourcestamps")
-        for sourcestamp in sourcestamps:
-            sha = sourcestamp["revision"]
-            if sha is None:
-                logger.info("[SlackStatusPush] no special revision for this")
-
-            logger.info("[SlackStatusPush] posting to {url}", url=self.endpoint)
-            try:
-                response = yield self._http.post("", json=postData)
-                if response.code != 200:
-                    content = yield response.content()
-                    logger.error(
-                        "[SlackStatusPush] {code}: unable to upload status: {content}",
-                        code=response.code,
-                        content=content,
-                    )
-            except Exception as e:
-                logger.error(
-                    "[SlackStatusPush] Failed to send status for {repo} at {sha}: {error}",
-                    repo=sourcestamp["repository"],
-                    sha=sha,
-                    error=e,
-                )
+        for report in reports:
+            builds = report["builds"]
+            for build in builds:
+                msg = ""
+                reason = build["buildset"]["reason"]
+                state_string = build["state_string"]
+                results = build["results"]
+                url = build["url"]
+                branch = build["properties"].get("branch", "")
+                pr_url = build["properties"].get("pullrequesturl", "")
+                users = build["users"]
+                msg += f"{state_string} - {branch} - {reason}"
+                msg += "\n"
+                if pr_url:
+                    msg += pr_url
+                    msg += "\n"
+                msg += url
+                msg += "\n"
+                msg += users
+                msg += "\n"
+                try:
+                    postData = {"text": msg}
+                    response = yield self._http.post("", json=postData)
+                    if response.code != 200:
+                        content = yield response.content()
+                        logger.error(
+                            "[SlackStatusPush] {code}: unable to upload status: {content}",
+                            code=response.code,
+                            content=content,
+                        )
+                except Exception as e:
+                    logger.error("[SlackStatusPush] Failed to send status: {error}", error=e)
