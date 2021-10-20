@@ -202,29 +202,32 @@ class SlackStatusPush(http.HttpStatusPush):
     @defer.inlineCallbacks
     def send(self, build, key):
         postData = yield self.getBuildDetailsAndSendMessage(build, key)
+        logger.info("[SlackStatusPush] postData: %s", postData)
         if not postData:
+            logger.info("[SlackStatusPush] no postData")
             return
 
         sourcestamps = build["buildset"]["sourcestamps"]
-
+        if not sourcestamps:
+            logger.warning("[SlackStatusPush] no sourcestamps")
         for sourcestamp in sourcestamps:
             sha = sourcestamp["revision"]
             if sha is None:
-                logger.info("no special revision for this")
+                logger.info("[SlackStatusPush] no special revision for this")
 
-            logger.info("posting to {url}", url=self.endpoint)
+            logger.info("[SlackStatusPush] posting to {url}", url=self.endpoint)
             try:
                 response = yield self._http.post("", json=postData)
                 if response.code != 200:
                     content = yield response.content()
                     logger.error(
-                        "{code}: unable to upload status: {content}",
+                        "[SlackStatusPush] {code}: unable to upload status: {content}",
                         code=response.code,
                         content=content,
                     )
             except Exception as e:
                 logger.error(
-                    "Failed to send status for {repo} at {sha}: {error}",
+                    "[SlackStatusPush] Failed to send status for {repo} at {sha}: {error}",
                     repo=sourcestamp["repository"],
                     sha=sha,
                     error=e,
