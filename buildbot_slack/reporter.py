@@ -108,14 +108,24 @@ class SlackStatusPush(http.HttpStatusPush):
                 pprint.pprint(build)
                 msg = ""
 
+                scheduler = build["properties"]["scheduler"][0]
+                msg += f"Scheduler: {scheduler}\n"
+
+                builder = build["properties"]["buildername"][0]
+                msg += f"Builder: {builder}\n"
+
+                worker = build["properties"]["workername"][0]
+                msg += f"Worker: {worker}\n"
+
                 reason = build["buildset"]["reason"]
+                msg += f"Reason: {reason}\n"
+
                 state_string = build["state_string"]
+                msg += f"State: {state_string}\n"
+
                 branch = build["properties"].get("branch")
                 if branch is not None:
-                    msg += f"{state_string} - {branch[0]} - {reason}"
-                else:
-                    msg += f"{state_string} - {reason}"
-                msg += "\n\n"
+                    msg += f"Branch: {branch[0]}\n"
 
                 pr_url = build["properties"].get("pullrequesturl")
                 if pr_url is not None:
